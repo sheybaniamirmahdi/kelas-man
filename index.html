@@ -367,7 +367,8 @@
             addDoc,
             deleteDoc,
             onSnapshot,
-            doc
+            doc,
+            updateDoc
         } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
         const firebaseConfig = {
             apiKey: "AIzaSyAIlCEvhyOwwVWeGn5Ygg6R97hjg9TQWew",
@@ -390,6 +391,7 @@
         window.firebaseDeleteDoc = deleteDoc;
         window.firebaseOnSnapshot = onSnapshot;
         window.firebaseDoc = doc;
+        window.firebaseUpdateDoc = updateDoc;
     </script>
 </head>
 
@@ -525,7 +527,13 @@
                 row.innerHTML = `
             <td>${escapeHTML(student.name)}</td>
             <td>${escapeHTML(student.grade)}</td>
-            <td><span class="status">${escapeHTML(status)}</span></td>
+           <td>
+    <select class="attendance-select" data-id="${studentDoc.id}">
+        <option value="حاضر" ${status === "حاضر" ? "selected" : ""}>حاضر</option>
+        <option value="غایب" ${status === "غایب" ? "selected" : ""}>غایب</option>
+        <option value="تأخیر" ${status === "تأخیر" ? "selected" : ""}>تأخیر</option>
+    </select>
+</td>
             <td><button class="delete-btn" type="button">حذف</button></td>
         `;
 
@@ -543,6 +551,19 @@
                 });
 
                 studentTable.appendChild(row);
+                row.querySelector(".attendance-select").addEventListener("change", async (event) => {
+                    const newStatus = event.target.value;
+
+                    try {
+                        await window.firebaseUpdateDoc(
+                            window.firebaseDoc(window.firebaseDb, STUDENTS, studentDoc.id),
+                            { status: newStatus }
+                        );
+                    } catch (error) {
+                        console.error(error);
+                        alert("ثبت وضعیت حضور و غیاب ناموفق بود.");
+                    }
+                });
             });
 
             document.getElementById("totalStudents").textContent = snapshot.size;
