@@ -504,35 +504,147 @@
         </section>
     </main>
     <script>
+        const STORAGE_KEY = "classroom_students";
+        const STUDENTS = "students";
 
+        const searchInput = document.getElementById("searchInput");
+        const studentTable = document.getElementById("studentTable");
+        const addStudentBtn = document.getElementById("addStudentBtn");
+        const loginForm = document.getElementById("loginForm");
+        const loginPage = document.getElementById("loginPage");
+        const loginMessage = document.getElementById("loginMessage");
 
-        const grade = prompt("پایه تحصیلی:", "هفتم");
-        if (!grade || !grade.trim()) return;
+        let unsubscribeStudents = null;
 
-        try {
-            await window.firebaseAddDoc(
-                window.firebaseCollection(window.firebaseDb, STUDENTS),
-                {
-                    name: name.trim(),
-                    grade: grade.trim(),
-                    status: "حاضر"
-                }
-            );
+        function renderStudents(snapshot) {
+            studentTable.innerHTML = "";
 
-            alert("دانش‌آموز در فضای آنلاین ذخیره شد.");
-        } catch (error) {
-            console.error("خطای افزودن:", error);
-            alert("ذخیره انجام نشد. اتصال و قوانین Firestore رو بررسی کن.");
+            snapshot.forEach((studentDoc) => {
+                const student = studentDoc.data();
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+            <td>${escapeHTML(student.name || "")}</td>
+            <td>${escapeHTML(student.grade || "")}</td>
+            <td>${escapeHTML(student.status || "حاضر")}</td>
+            <td><button class="delete-btn">حذف</button></td>
+        `;
+
+                row.querySelector(".delete-btn").addEventListener("click", async () => {
+                    if (!confirm("این دانش‌آموز حذف شود؟")) return;
+
+                    try {
+                        await window.firebaseDeleteDoc(
+                            window.firebaseDoc(
+                                window.firebaseDb,
+                                STUDENTS,
+                                studentDoc.id
+                            )
+                        );
+                    } catch (error) {
+                        console.error(error);
+                        alert("حذف دانش‌آموز ناموفق بود.");
+                    }
+                });
+
+                studentTable.appendChild(row);
+            });
+
+            filterStudents();
         }
 
-        loginForm.addEventListener("submit", async event => {
+        function escapeHTML(value) {
+            return String(value).replace(/[&<>"']/g, (char) => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            })[char]);
+        }
+
+        function filterStudents() {
+            const query = (searchInput?.value || "").trim().toLowerCase();
+
+            studentTable.querySelectorAll("tr").forEach((row) => {
+                row.style.display = row.textContent.toLowerCase().includes(query)
+                    ? ""
+                    : "none";
+            });
+        }
+
+        async function startStudentsSync() {
+            try {
+                const collectionRef = window.firebaseCollection(
+                    window.firebaseDb,
+                    STUDENTS
+                );
+
+                const snapshot = await window.firebaseGetDocs(collectionRef);
+
+                if (snapshot.empty) {
+                    const savedStudents = JSON.parse(
+                        localStorage.getItem(STORAGE_KEY) || "[]"
+                    );
+
+                    for (const student of savedStudents) {
+                        await window.firebaseAddDoc(collectionRef, {
+                            name: student.name || "",
+                            grade: student.grade || "",
+                            status: student.status || "حاضر"
+                        });
+                    }
+                }
+
+                if (unsubscribeStudents) unsubscribeStudents();
+
+                unsubscribeStudents = window.firebaseOnSnapshot(
+                    collectionRef,
+                    (snapshot) => renderStudents(snapshot),
+                    (error) => {
+                        console.error("Firestore listener:", error);
+                        alert("دریافت تغییرات آنلاین ناموفق بود.");
+                    }
+                );
+            } catch (error) {
+                console.error("Firestore sync:", error);
+                alert("اتصال به اطلاعات دانش‌آموزان ناموفق بود.");
+            }
+        }
+
+        addStudentBtn.addEventListener("click", async () => {
+            const name = prompt("نام دانش‌آموز:");
+            if (!name || !name.trim()) return;
+
+            const grade = prompt("پایه تحصیلی:", "هفتم");
+            if (!grade || !grade.trim()) return;
+
+            try {
+                await window.firebaseAddDoc(
+                    window.firebaseCollection(window.firebaseDb, STUDENTS),
+                    {
+                        name: name.trim(),
+                        grade: grade.trim(),
+                        status: "حاضر"
+                    }
+                );
+            } catch (error) {
+                console.error(error);
+                alert("افزودن دانش‌آموز ناموفق بود.");
+            }
+        });
+
+        searchInput?.addEventListener("input", filterStudents);
+
+        loginForm.addEventListener("submit", async (event) => {
             event.preventDefault();
+
             const email = document.getElementById("username").value.trim();
             const password = document.getElementById("password").value;
 
-            loginMessage.textContent = "در حال بررسی...";
-
             try {
+                loginMessage.textContent = "در حال ورود...";
+
                 await window.firebaseSignIn(
                     window.firebaseAuth,
                     email,
@@ -541,17 +653,13 @@
 
                 await startStudentsSync();
 
-                if (studentsReady) {
-                    loginMessage.textContent = "";
-                    loginPage.style.display = "none";
-                    document.getElementById("password").value = "";
-                } else {
-                    loginMessage.textContent =
-                        "ورود انجام شد، اما دریافت اطلاعات آنلاین ناموفق بود.";
-                }
+                loginPage.style.display = "none";
             } catch (error) {
-                console.error("خطای ورود یا همگام‌سازی:", error);
-                loginMessage.textContent =
-                    "ورود یا دریافت اطلاعات ناموفق بود. اتصال و تنظیمات Firebase رو بررسی کن.";
+                console.error("Login error:", error);
+                loginMessage.textContent = "ورود ناموفق بود؛ ایمیل و رمز را بررسی کن.";
             }
         });
+    </script>
+</body>
+
+</html>
