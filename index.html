@@ -352,7 +352,36 @@
             color: #d63031;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+
+        import {
+            getAuth,
+            signInWithEmailAndPassword
+        } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+
+        import {
+            getFirestore,
+            collection,
+            getDocs,
+            setDoc,
+            doc
+        } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        const firebaseConfig = {
+            apiKey: "AIzaSyAIlCEvhyOwwVWeGn5Ygg6R97hjg9TQWew",
+            authDomain: "kelas-man.firebaseapp.com",
+            projectId: "kelas-man",
+            storageBucket: "kelas-man.firebasestorage.app",
+            messagingSenderId: "935966882155",
+            appId: "1:935966882155:web:2d29be4ffce5817655342e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        window.firebaseAuth = auth;
+        window.firebaseSignIn = signInWithEmailAndPassword;
+    </script>
 </head>
 
 <body>
@@ -466,31 +495,8 @@
         </section>
     </main>
     <script>
-        const SUPABASE_URL = "https://jkpuhzucafavzotfilkj.supabase.co";
-        const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0fDPfLoboOGSSi7o_cSksg_HAvrnoaX";
 
-        const supabaseClient = window.supabase.createClient(
-            SUPABASE_URL,
-            SUPABASE_PUBLISHABLE_KEY
-        );
-        // تست اتصال به Supabase
-        async function testSupabaseConnection() {
-            const { data, error } = await supabaseClient
-                .from("students")
-                .select("id")
-                .limit(1);
 
-            if (error) {
-                console.error("خطای اتصال:", error.message);
-                alert("اتصال یا دسترسی مشکل دارد. کنسول را بررسی کن.");
-                return;
-            }
-            console.log("اتصال موفق بود!", data);
-            alert("اتصال به Supabase موفق بود! 🎉");
-
-        }
-
-        testSupabaseConnection();
         const searchInput = document.getElementById("studentSearch");
         const studentTable = document.getElementById("studentTable");
 
@@ -621,25 +627,24 @@
         const loginMessage = document.getElementById("loginMessage");
         loginForm.addEventListener("submit", async function (event) {
             event.preventDefault();
-            const username = document.getElementById("username").value.trim();
+
+            const email = document.getElementById("username").value.trim();
             const password = document.getElementById("password").value;
-            // در Supabase باید ایمیل حساب معلم وارد شود
-            const email = username;
-            loginMessage.textContent = "در حال ورود...";
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
-            if (error) {
+
+            loginMessage.textContent = "در حال بررسی...";
+
+            try {
+                const result = await window.firebaseSignIn(window.firebaseAuth, email, password);
+
+                loginMessage.textContent = "";
+                loginPage.style.display = "none";
+                document.getElementById("password").value = "";
+            } catch (error) {
                 loginMessage.textContent = "ورود ناموفق بود؛ ایمیل و رمز را بررسی کن.";
-                console.error("خطای ورود:", error.message);
-                return;
+                console.error("خطای ورود:", error.code);
             }
-            loginMessage.textContent = "";
-            loginPage.style.display = "none";
-            document.getElementById("password").value = "";
-            console.log("ورود موفق بود:", data.user.id);
         });
+
     </script>
 </body>
 
