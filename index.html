@@ -435,41 +435,35 @@
     <h1>کلاس من 🎓</h1>
     <p>به پنل مدیریت دانش‌آموزان خوش آمدید.</p>
     <main class="main-content">
-
         <header class="welcome">
-            <h1>سلام، معلم عزیز! 👋</h1>
-            <p>به پنل مدیریت کلاس خودت خوش اومدی.</p>
+            <div>
+                <h1>سلام، معلم عزیز! 👋</h1>
+                <p>به پنل مدیریت کلاس خودت خوش اومدی.</p>
+                <p id="todayDate"></p>
+            </div>
             <button id="addStudentBtn" class="add-student-btn">
                 + افزودن دانش‌آموز
             </button>
         </header>
-
         <section class="stats">
-
             <div class="card">
                 <div class="stat-title">کل دانش‌آموزان</div>
-                <div class="stat-number purple">19</div>
+                <div class="stat-number purple" id="totalStudents">۰</div>
             </div>
-
             <div class="card">
                 <div class="stat-title">حاضر امروز</div>
-                <div class="stat-number green"></div>
+                <div class="stat-number green" id="presentStudents">۰</div>
             </div>
-
             <div class="card">
                 <div class="stat-title">غایب امروز</div>
-                <div class="stat-number red"></div>
+                <div class="stat-number red" id="absentStudents">۰</div>
             </div>
-
         </section>
         <section class="student-panel" id="students">
-
             <div class="student-header">
                 <h2>فهرست دانش‌آموزان</h2>
-
-                <input type="search" id="studentSearch" placeholder="جست‌وجوی نام دانش‌آموز...">
+                <input type="search" id="studentSearch" placeholder="جست‌وجوی نام دانش‌آموز..." autocomplete="off">
             </div>
-
             <div class="table-container">
                 <table>
                     <thead>
@@ -480,36 +474,21 @@
                             <th>عملیات</th>
                         </tr>
                     </thead>
-
                     <tbody id="studentTable">
-                        <tr>
-                            <td>آراد احمدی</td>
-                            <td>پنجم</td>
-                            <td><span class="status present">حاضر</span></td>
-                        </tr>
-
-                        <tr>
-                            <td>نگار رضایی</td>
-                            <td>پنجم</td>
-                            <td><span class="status absent">غایب</span></td>
-                        </tr>
-
-                        <tr>
-                            <td>پارسا محمدی</td>
-                            <td>پنجم</td>
-                            <td><span class="status present">حاضر</span></td>
-                        </tr>
+                        <!-- اطلاعات دانش‌آموزان از Firebase بارگذاری می‌شود -->
                     </tbody>
                 </table>
             </div>
-
+            <p id="emptyStudents" style="display:none; text-align:center; padding:20px;">
+                هنوز دانش‌آموزی ثبت نشده است.
+            </p>
         </section>
     </main>
     <script>
         const STORAGE_KEY = "classroom_students";
         const STUDENTS = "students";
 
-        const searchInput = document.getElementById("searchInput");
+        const searchInput = document.getElementById("studentSearch");
         const studentTable = document.getElementById("studentTable");
         const addStudentBtn = document.getElementById("addStudentBtn");
         const loginForm = document.getElementById("loginForm");
@@ -518,18 +497,36 @@
 
         let unsubscribeStudents = null;
 
+        function escapeHTML(value) {
+            return String(value ?? "").replace(/[&<>"']/g, char => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            })[char]);
+        }
+
         function renderStudents(snapshot) {
             studentTable.innerHTML = "";
 
-            snapshot.forEach((studentDoc) => {
+            let present = 0;
+            let absent = 0;
+
+            snapshot.forEach(studentDoc => {
                 const student = studentDoc.data();
+                const status = student.status || "حاضر";
+
+                if (status === "حاضر") present++;
+                if (status === "غایب") absent++;
+
                 const row = document.createElement("tr");
 
                 row.innerHTML = `
-            <td>${escapeHTML(student.name || "")}</td>
-            <td>${escapeHTML(student.grade || "")}</td>
-            <td>${escapeHTML(student.status || "حاضر")}</td>
-            <td><button class="delete-btn">حذف</button></td>
+            <td>${escapeHTML(student.name)}</td>
+            <td>${escapeHTML(student.grade)}</td>
+            <td><span class="status">${escapeHTML(status)}</span></td>
+            <td><button class="delete-btn" type="button">حذف</button></td>
         `;
 
                 row.querySelector(".delete-btn").addEventListener("click", async () => {
@@ -537,11 +534,7 @@
 
                     try {
                         await window.firebaseDeleteDoc(
-                            window.firebaseDoc(
-                                window.firebaseDb,
-                                STUDENTS,
-                                studentDoc.id
-                            )
+                            window.firebaseDoc(window.firebaseDb, STUDENTS, studentDoc.id)
                         );
                     } catch (error) {
                         console.error(error);
@@ -552,23 +545,22 @@
                 studentTable.appendChild(row);
             });
 
-            filterStudents();
-        }
+            document.getElementById("totalStudents").textContent = snapshot.size;
+            document.getElementById("presentStudents").textContent = present;
+            document.getElementById("absentStudents").textContent = absent;
 
-        function escapeHTML(value) {
-            return String(value).replace(/[&<>"']/g, (char) => ({
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                '"': "&quot;",
-                "'": "&#39;"
-            })[char]);
+            const emptyMessage = document.getElementById("emptyStudents");
+            if (emptyMessage) {
+                emptyMessage.style.display = snapshot.empty ? "block" : "none";
+            }
+
+            filterStudents();
         }
 
         function filterStudents() {
             const query = (searchInput?.value || "").trim().toLowerCase();
 
-            studentTable.querySelectorAll("tr").forEach((row) => {
+            studentTable.querySelectorAll("tr").forEach(row => {
                 row.style.display = row.textContent.toLowerCase().includes(query)
                     ? ""
                     : "none";
@@ -602,8 +594,8 @@
 
                 unsubscribeStudents = window.firebaseOnSnapshot(
                     collectionRef,
-                    (snapshot) => renderStudents(snapshot),
-                    (error) => {
+                    renderStudents,
+                    error => {
                         console.error("Firestore listener:", error);
                         alert("دریافت تغییرات آنلاین ناموفق بود.");
                     }
@@ -638,7 +630,7 @@
 
         searchInput?.addEventListener("input", filterStudents);
 
-        loginForm.addEventListener("submit", async (event) => {
+        loginForm.addEventListener("submit", async event => {
             event.preventDefault();
 
             const email = document.getElementById("username").value.trim();
@@ -654,11 +646,11 @@
                 );
 
                 await startStudentsSync();
-
                 loginPage.style.display = "none";
             } catch (error) {
                 console.error("Login error:", error);
-                loginMessage.textContent = "ورود ناموفق بود؛ ایمیل و رمز را بررسی کن.";
+                loginMessage.textContent =
+                    "ورود ناموفق بود؛ ایمیل و رمز را بررسی کن.";
             }
         });
     </script>
