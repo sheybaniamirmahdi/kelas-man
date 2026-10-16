@@ -364,7 +364,9 @@
             getFirestore,
             collection,
             getDocs,
-            setDoc,
+            addDoc,
+            deleteDoc,
+            onSnapshot,
             doc
         } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
         const firebaseConfig = {
@@ -381,6 +383,13 @@
         const db = getFirestore(app);
         window.firebaseAuth = auth;
         window.firebaseSignIn = signInWithEmailAndPassword;
+        window.firebaseDb = db;
+        window.firebaseCollection = collection;
+        window.firebaseGetDocs = getDocs;
+        window.firebaseAddDoc = addDoc;
+        window.firebaseDeleteDoc = deleteDoc;
+        window.firebaseOnSnapshot = onSnapshot;
+        window.firebaseDoc = doc;
     </script>
 </head>
 
@@ -497,155 +506,52 @@
     <script>
 
 
-        const searchInput = document.getElementById("studentSearch");
-        const studentTable = document.getElementById("studentTable");
+        const grade = prompt("پایه تحصیلی:", "هفتم");
+        if (!grade || !grade.trim()) return;
 
-        searchInput.addEventListener("input", function () {
-            const searchText = searchInput.value.trim().toLowerCase();
-            const rows = studentTable.querySelectorAll("tr");
+        try {
+            await window.firebaseAddDoc(
+                window.firebaseCollection(window.firebaseDb, STUDENTS),
+                {
+                    name: name.trim(),
+                    grade: grade.trim(),
+                    status: "حاضر"
+                }
+            );
 
-            rows.forEach(function (row) {
-                const studentName = row.cells[0].textContent.toLowerCase();
-
-                row.style.display = studentName.includes(searchText)
-                    ? ""
-                    : "none";
-            });
-        });
-        document.getElementById("addStudentBtn").addEventListener("click", function () {
-            const name = prompt("نام و نام خانوادگی دانش‌آموز را وارد کن:");
-            if (!name || !name.trim()) return;
-
-            const grade = prompt("پایه تحصیلی را وارد کن:", "هفتم");
-            if (!grade || !grade.trim()) return;
-
-            const row = document.createElement("tr");
-
-            const nameCell = document.createElement("td");
-            nameCell.textContent = name.trim();
-
-            const gradeCell = document.createElement("td");
-            gradeCell.textContent = grade.trim();
-
-            const statusCell = document.createElement("td");
-            const status = document.createElement("span");
-            status.className = "status present";
-            status.textContent = "حاضر";
-            statusCell.appendChild(status);
-
-            row.append(nameCell, gradeCell, statusCell);
-            studentTable.appendChild(row);
-            saveStudents();
-
-            searchInput.dispatchEvent(new Event("input"));
-            alert("دانش‌آموز با موفقیت اضافه شد! 🎉");
-        });
-        const STORAGE_KEY = "classroom_students";
-
-        // اطلاعات فعلی جدول را ذخیره می‌کند
-        function saveStudents() {
-            const rows = studentTable.querySelectorAll("tr");
-
-            const students = Array.from(rows).map(function (row) {
-                return {
-                    name: row.cells[0].textContent,
-                    grade: row.cells[1].textContent,
-                    status: row.cells[2].textContent.trim()
-                };
-            });
-
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+            alert("دانش‌آموز در فضای آنلاین ذخیره شد.");
+        } catch (error) {
+            console.error("خطای افزودن:", error);
+            alert("ذخیره انجام نشد. اتصال و قوانین Firestore رو بررسی کن.");
         }
 
-        // اطلاعات ذخیره‌شده را هنگام باز شدن صفحه برمی‌گرداند
-        function loadStudents() {
-            const savedData = localStorage.getItem(STORAGE_KEY);
-
-            if (savedData === null) {
-                saveStudents();
-                return;
-            }
-
-            try {
-                const students = JSON.parse(savedData);
-                studentTable.replaceChildren();
-
-                students.forEach(function (student) {
-                    const row = document.createElement("tr");
-                    const nameCell = document.createElement("td");
-                    const gradeCell = document.createElement("td");
-                    const statusCell = document.createElement("td");
-                    const statusBadge = document.createElement("span");
-
-                    nameCell.textContent = student.name;
-                    gradeCell.textContent = student.grade;
-
-                    statusBadge.textContent = student.status;
-                    statusBadge.className =
-                        student.status === "غایب"
-                            ? "status absent"
-                            : "status present";
-
-                    statusCell.appendChild(statusBadge);
-                    const actionCell = document.createElement("td");
-                    const deleteButton = document.createElement("button");
-
-                    deleteButton.textContent = "🗑️ حذف";
-                    deleteButton.className = "delete-student-btn";
-
-                    deleteButton.addEventListener("click", function () {
-                        const confirmed = confirm(
-                            "مطمئنی می‌خوای این دانش‌آموز رو حذف کنی؟"
-                        );
-
-                        if (confirmed) {
-                            row.remove();
-                            saveStudents();
-                            searchInput.dispatchEvent(new Event("input"));
-                        }
-                    });
-
-                    actionCell.appendChild(deleteButton);
-                    row.append(nameCell, gradeCell, statusCell, actionCell);
-                    studentTable.appendChild(row);
-
-
-                    searchInput.dispatchEvent(new Event("input"));
-                });
-
-                searchInput.dispatchEvent(new Event("input"));
-            } catch (error) {
-                alert("اطلاعات ذخیره‌شده قابل خواندن نیست.");
-            }
-        }
-
-        loadStudents();
-
-
-        const loginForm = document.getElementById("loginForm");
-        const loginPage = document.getElementById("loginPage");
-        const loginMessage = document.getElementById("loginMessage");
-        loginForm.addEventListener("submit", async function (event) {
+        loginForm.addEventListener("submit", async event => {
             event.preventDefault();
-
             const email = document.getElementById("username").value.trim();
             const password = document.getElementById("password").value;
 
             loginMessage.textContent = "در حال بررسی...";
 
             try {
-                const result = await window.firebaseSignIn(window.firebaseAuth, email, password);
+                await window.firebaseSignIn(
+                    window.firebaseAuth,
+                    email,
+                    password
+                );
 
-                loginMessage.textContent = "";
-                loginPage.style.display = "none";
-                document.getElementById("password").value = "";
+                await startStudentsSync();
+
+                if (studentsReady) {
+                    loginMessage.textContent = "";
+                    loginPage.style.display = "none";
+                    document.getElementById("password").value = "";
+                } else {
+                    loginMessage.textContent =
+                        "ورود انجام شد، اما دریافت اطلاعات آنلاین ناموفق بود.";
+                }
             } catch (error) {
-                loginMessage.textContent = "ورود ناموفق بود؛ ایمیل و رمز را بررسی کن.";
-                console.error("خطای ورود:", error.code);
+                console.error("خطای ورود یا همگام‌سازی:", error);
+                loginMessage.textContent =
+                    "ورود یا دریافت اطلاعات ناموفق بود. اتصال و تنظیمات Firebase رو بررسی کن.";
             }
         });
-
-    </script>
-</body>
-
-</html>
