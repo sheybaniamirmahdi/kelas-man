@@ -465,46 +465,124 @@
             }
         }
     </style>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@28.3.0"></script>
+    <script>
+        (() => {
+            const client = new Appwrite.Client()
+                .setEndpoint("https://fra.cloud.appwrite.io/v1")
+                .setProject("6ad38234003afd084f33");
 
-        import {
-            getAuth,
-            signInWithEmailAndPassword
-        } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+            const account = new Appwrite.Account(client);
+            const tablesDB = new Appwrite.TablesDB(client);
 
-        import {
-            getFirestore,
-            collection,
-            getDocs,
-            addDoc,
-            deleteDoc,
-            onSnapshot,
-            doc,
-            updateDoc
-        } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-        const firebaseConfig = {
-            apiKey: "AIzaSyAIlCEvhyOwwVWeGn5Ygg6R97hjg9TQWew",
-            authDomain: "kelas-man.firebaseapp.com",
-            projectId: "kelas-man",
-            storageBucket: "kelas-man.firebasestorage.app",
-            messagingSenderId: "935966882155",
-            appId: "1:935966882155:web:2d29be4ffce5817655342e"
-        };
+            const DATABASE_ID = "6ad383d1002b62a17ad0";
+            const TABLES = {
+                students: "students",
+                grades: "grades",
+                gradeCategories: "6ad38e3f002a113513ae"
+            };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        window.firebaseAuth = auth;
-        window.firebaseSignIn = signInWithEmailAndPassword;
-        window.firebaseDb = db;
-        window.firebaseCollection = collection;
-        window.firebaseGetDocs = getDocs;
-        window.firebaseAddDoc = addDoc;
-        window.firebaseDeleteDoc = deleteDoc;
-        window.firebaseOnSnapshot = onSnapshot;
-        window.firebaseDoc = doc;
-        window.firebaseUpdateDoc = updateDoc;
+            const tableName = name => {
+                if (!TABLES[name]) throw new Error("شناسه جدول پیدا نشد: " + name);
+                return TABLES[name];
+            };
+
+            const ref = (table, id = null) => ({
+                table: tableName(table),
+                id
+            });
+
+            async function getDocs(collectionRef) {
+                const result = await tablesDB.listRows({
+                    databaseId: DATABASE_ID,
+                    tableId: collectionRef.table,
+                    queries: [Appwrite.Query.limit(100)]
+                });
+
+                const docs = result.rows.map(row => ({
+                    id: row.$id,
+                    data: () => ({ ...row })
+                }));
+
+                return {
+                    docs,
+                    size: docs.length,
+                    empty: docs.length === 0
+                };
+            }
+
+            async function addDoc(collectionRef, data) {
+                const row = await tablesDB.createRow({
+                    databaseId: DATABASE_ID,
+                    tableId: collectionRef.table,
+                    rowId: Appwrite.ID.unique(),
+                    data
+                });
+                return { id: row.$id };
+            }
+
+            async function deleteDoc(documentRef) {
+                return tablesDB.deleteRow({
+                    databaseId: DATABASE_ID,
+                    tableId: documentRef.table,
+                    rowId: documentRef.id
+                });
+            }
+
+            async function updateDoc(documentRef, data) {
+                return tablesDB.updateRow({
+                    databaseId: DATABASE_ID,
+                    tableId: documentRef.table,
+                    rowId: documentRef.id,
+                    data
+                });
+            }
+
+            function onSnapshot(collectionRef, callback, onError) {
+                let stopped = false;
+                let previous = "";
+
+                const refresh = async () => {
+                    if (stopped) return;
+                    try {
+                        const snapshot = await getDocs(collectionRef);
+                        const signature = JSON.stringify(
+                            snapshot.docs.map(d => ({ id: d.id, data: d.data() }))
+                        );
+
+                        if (signature !== previous) {
+                            previous = signature;
+                            callback(snapshot);
+                        }
+                    } catch (error) {
+                        if (onError) onError(error);
+                    }
+                };
+
+                refresh();
+                const timer = setInterval(refresh, 5000);
+
+                return () => {
+                    stopped = true;
+                    clearInterval(timer);
+                };
+            }
+
+            window.firebaseAuth = account;
+            window.firebaseDb = tablesDB;
+            window.firebaseCollection = (_db, name) => ref(name);
+            window.firebaseDoc = (_db, name, id) => ref(name, id);
+            window.firebaseGetDocs = getDocs;
+            window.firebaseAddDoc = addDoc;
+            window.firebaseDeleteDoc = deleteDoc;
+            window.firebaseUpdateDoc = updateDoc;
+            window.firebaseOnSnapshot = onSnapshot;
+
+            window.firebaseSignIn = async (_account, email, password) =>
+                account.createEmailPasswordSession({ email, password });
+
+            console.log("Appwrite آماده است.");
+        })();
     </script>
 </head>
 
@@ -645,8 +723,7 @@
                 </div>
 
                 <div class="student-header">
-                    <button id="printGradesBtn" class="add-student-btn" type="button">
-                        🖨️ چاپ جدول نمرات
+
                     </button>
                     <button id="addGradeBtn" class="add-student-btn" type="button">
                         + ثبت نمره
@@ -1198,7 +1275,7 @@
                         name: selectedStudent.name || "",
                         studentGrade: selectedStudent.grade || "",
                         subject: subject.trim(),
-                        grade: grade,
+                        grade: String(grade),
                         description: description.trim(),
                         createdAt: new Date().toISOString()
                     }
@@ -1269,53 +1346,45 @@
         }
         document.getElementById("printGradesBtn")?.addEventListener("click", () => {
             const gradesSection = document.getElementById("grades");
-            if (!gradesSection) return;
+            const table = gradesSection?.querySelector("table");
+
+            if (!table) return;
+
+            const category = gradeCategories.find(
+                item => item.id === selectedGradeCategory
+            );
+
             const printWindow = window.open("", "_blank");
+
             if (!printWindow) {
                 alert("پنجره چاپ مسدود شده است. اجازه باز شدن پنجره را بده.");
                 return;
             }
+
             printWindow.document.write(`
         <!DOCTYPE html>
         <html lang="fa" dir="rtl">
         <head>
             <meta charset="UTF-8">
-            <title>جدول نمرات دانش‌آموزان</title>
+            <title>${category?.name || "جدول نمرات"}</title>
             <style>
-                body {
-                    font-family: Tahoma, Arial, sans-serif;
-                    padding: 24px;
-                    color: #222;
-                }
-                h2 {
-                    text-align: center;
-                    margin-bottom: 24px;
-                }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                }
-                th, td {
-                    border: 1px solid #999;
-                    padding: 10px;
-                    text-align: center;
-                }
-                th {
-                    background: #eee;
-                }
-                @media print {
-                    body { padding: 0; }
-                }
+                body { font-family: Tahoma, Arial, sans-serif; padding: 24px; }
+                h2 { text-align: center; margin-bottom: 24px; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #999; padding: 10px; text-align: center; }
+                @media print { body { padding: 0; } }
             </style>
         </head>
         <body>
-            <h2>جدول نمرات دانش‌آموزان</h2>
-            ${gradesSection.querySelector("table").outerHTML}
+            <h2>${category?.name || "جدول نمرات دانش‌آموزان"}</h2>
+            ${table.outerHTML}
         </body>
         </html>
     `);
+
             printWindow.document.close();
             printWindow.focus();
+
             setTimeout(() => {
                 printWindow.print();
                 printWindow.close();
