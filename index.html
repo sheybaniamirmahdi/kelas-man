@@ -351,6 +351,119 @@
             margin-bottom: 0;
             color: #d63031;
         }
+
+        /* فوتر سایت کلاس من */
+        .site-footer {
+            margin-top: 40px;
+            padding: 28px 24px 16px;
+            background: #1e1b4b;
+            color: #ffffff;
+            border-radius: 18px 18px 0 0;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+
+        .footer-brand h3 {
+            margin: 0 0 8px;
+            font-size: 22px;
+        }
+
+        .footer-brand p {
+            margin: 0;
+            color: #c7d2fe;
+            font-size: 14px;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+        }
+
+        .footer-links a {
+            color: #e0e7ff;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: #a5b4fc;
+        }
+
+        .footer-bottom {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #3730a3;
+            text-align: center;
+            color: #c7d2fe;
+            font-size: 12px;
+        }
+
+        .footer-bottom p {
+            margin: 0;
+        }
+
+        @media (max-width: 600px) {
+            .footer-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .footer-links {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+
+        /* نوار تاریخ شمسی و ساعت زنده */
+        .datetime-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 0 0 24px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+            border: 1px solid #e0e7ff;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.06);
+        }
+
+        .datetime-date,
+        .datetime-clock {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #312e81;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .datetime-clock {
+            direction: ltr;
+            font-size: 18px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .datetime-icon {
+            font-size: 21px;
+        }
+
+        @media (max-width: 600px) {
+            .datetime-bar {
+                padding: 14px;
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
     </style>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -427,25 +540,35 @@
         </div>
 
         <nav class="menu">
-            <a href="#" class="active">▦ داشبورد</a>
-            <a href="#students">♙ دانش‌آموزان</a>
-            <a href="#attendance">▣ حضور و غیاب</a>
-            <a href="#settings">⚙ تنظیمات</a>
+            <a href="#dashboard" class="active" data-page="dashboard">▦ داشبورد</a>
+            <a href="#students" data-page="students">♙ دانش‌آموزان</a>
+            <a href="#grades" data-page="grades">📊 نمرات</a>
+            <a href="#attendance" data-page="attendance">▣ حضور و غیاب</a>
+            <a href="#settings" data-page="settings">⚙️ تنظیمات</a>
         </nav>
     </aside>
 
     <h1>کلاس من 🎓</h1>
-    <p>از طرف امیر مهدی...</p>
+    <p>وقت بخیر... 👋</p>
+    <div class="datetime-bar" dir="rtl">
+        <div class="datetime-date">
+            <span class="datetime-icon">📅</span>
+            <span id="persianDate">در حال دریافت تاریخ...</span>
+        </div>
+        <div class="datetime-clock">
+            <span class="datetime-icon">🕒</span>
+            <span id="liveClock">--:--:--</span>
+        </div>
+    </div>
     <main class="main-content">
+
         <header class="welcome">
             <div>
-                <h1>سلام، خانم قاسمی! 👋</h1>
+                <h1>سلام، خانم قاسمی! ❤️ </h1>
                 <p>به پنل مدیریت کلاس خودت خوش اومدی.</p>
                 <p id="todayDate"></p>
             </div>
-            <button id="addStudentBtn" class="add-student-btn">
-                + افزودن دانش‌آموز
-            </button>
+
         </header>
         <section class="stats">
             <div class="card">
@@ -461,15 +584,21 @@
                 <div class="stat-number red" id="absentStudents">۰</div>
             </div>
         </section>
-        <section class="student-panel" id="students">
+        <section class="student-panel" id="students" data-section="students" style="display:none;">
             <div class="student-header">
                 <h2>فهرست دانش‌آموزان</h2>
+
+                <button id="addStudentBtn" class="add-student-btn">
+                    + افزودن دانش‌آموز
+                </button>
+
                 <input type="search" id="studentSearch" placeholder="جست‌وجوی نام دانش‌آموز..." autocomplete="off">
             </div>
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
+                            <th>ردیف</th>
                             <th>نام و نام خانوادگی</th>
                             <th>پایه تحصیلی</th>
                             <th>وضعیت امروز</th>
@@ -485,6 +614,75 @@
                 هنوز دانش‌آموزی ثبت نشده است.
             </p>
         </section>
+        <section id="grades" data-section="grades" style="display: none;">
+            <div class="student-panel">
+                <div class="student-header">
+                    <h2>📊 جدول نمرات دانش‌آموزان</h2>
+                </div>
+
+                <div id="gradeCategories" style="display:flex; gap:10px; flex-wrap:wrap; margin:15px 0;">
+                    <button type="button" class="add-student-btn" data-grade-category="initial">
+                        نمرات آغازین
+                    </button>
+                    <button type="button" class="add-student-btn" data-grade-category="term1">
+                        نمرات ترم اول
+                    </button>
+                    <button type="button" class="add-student-btn" data-grade-category="term2">
+                        نمرات ترم دوم
+                    </button>
+                </div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+                    <button id="addGradeCategoryBtn" class="add-student-btn" type="button">
+                        + افزودن زیرمنو
+                    </button>
+                    <button id="renameGradeCategoryBtn" class="add-student-btn" type="button">
+                        ✏️ تغییر نام زیرمنو
+                    </button>
+                    <button id="deleteGradeCategoryBtn" class="add-student-btn" type="button">
+                        🗑️ حذف زیرمنو
+                    </button>
+                </div>
+
+                <div class="student-header">
+                    <button id="printGradesBtn" class="add-student-btn" type="button">
+                        🖨️ چاپ جدول نمرات
+                    </button>
+                    <button id="addGradeBtn" class="add-student-btn" type="button">
+                        + ثبت نمره
+                    </button>
+                </div>
+            </div>
+            <button id="printGradesBtn" class="add-student-btn" type="button">
+                🖨️ چاپ جدول نمرات
+            </button>
+            <button id="addGradeBtn" class="add-student-btn" type="button">
+                + ثبت نمره
+            </button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ردیف</th>
+                            <th>نام دانش‌آموز</th>
+                            <th>پایه تحصیلی</th>
+                            <th>نام درس</th>
+                            <th>نمره</th>
+                            <th>توضیحات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gradesTable">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 20px;">
+                                هنوز نمره‌ای ثبت نشده است.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        </section>
     </main>
     <script>
         const STORAGE_KEY = "classroom_students";
@@ -498,6 +696,173 @@
         const loginMessage = document.getElementById("loginMessage");
 
         let unsubscribeStudents = null;
+        let selectedGradeCategory = "initial";
+
+        const defaultGradeCategories = [
+            { id: "initial", name: "نمرات آغازین" },
+            { id: "term1", name: "نمرات ترم اول" },
+            { id: "term2", name: "نمرات ترم دوم" }
+        ];
+
+        let gradeCategories = [...defaultGradeCategories];
+        let unsubscribeGradeCategories = null;
+
+        async function saveGradeCategories() {
+            const categoriesRef = window.firebaseCollection(
+                window.firebaseDb,
+                "gradeCategories"
+            );
+
+            const snapshot = await window.firebaseGetDocs(categoriesRef);
+
+            if (!snapshot.empty) {
+                for (const categoryDoc of snapshot.docs) {
+                    await window.firebaseDeleteDoc(
+                        window.firebaseDoc(
+                            window.firebaseDb,
+                            "gradeCategories",
+                            categoryDoc.id
+                        )
+                    );
+                }
+            }
+
+            for (const category of gradeCategories) {
+                await window.firebaseAddDoc(categoriesRef, {
+                    id: category.id,
+                    name: category.name
+                });
+            }
+        }
+
+        async function loadGradeCategories() {
+            try {
+                const categoriesRef = window.firebaseCollection(
+                    window.firebaseDb,
+                    "gradeCategories"
+                );
+
+                const snapshot = await window.firebaseGetDocs(categoriesRef);
+
+                if (snapshot.empty) {
+                    await saveGradeCategories();
+                } else {
+                    gradeCategories = snapshot.docs.map(doc => doc.data());
+
+                    if (!gradeCategories.some(item => item.id === selectedGradeCategory)) {
+                        selectedGradeCategory = gradeCategories[0]?.id || "initial";
+                    }
+                }
+
+                renderGradeCategories();
+            } catch (error) {
+                console.error("Grade categories error:", error);
+                alert("ذخیره یا دریافت زیرمنوها ناموفق بود.");
+            }
+        }
+
+        function renderGradeCategories() {
+            const container = document.getElementById("gradeCategories");
+            if (!container) return;
+
+            container.innerHTML = "";
+
+            gradeCategories.forEach(category => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "add-student-btn";
+                button.textContent = category.name;
+
+                if (category.id === selectedGradeCategory) {
+                    button.style.backgroundColor = "#2563eb";
+                    button.style.color = "#fff";
+                }
+
+                button.addEventListener("click", () => {
+                    selectedGradeCategory = category.id;
+                    renderGradeCategories();
+                    startGradesSync();
+                });
+
+                container.appendChild(button);
+            });
+        }
+
+        document.getElementById("addGradeCategoryBtn")?.addEventListener("click", async () => {
+            const name = prompt("نام زیرمنوی جدید را وارد کن:");
+            if (!name || !name.trim()) return;
+
+            const category = {
+                id: "category_" + Date.now(),
+                name: name.trim()
+            };
+
+            gradeCategories.push(category);
+            selectedGradeCategory = category.id;
+
+            try {
+                await saveGradeCategories();
+                renderGradeCategories();
+                startGradesSync();
+            } catch (error) {
+                console.error(error);
+                gradeCategories = gradeCategories.filter(item => item.id !== category.id);
+                alert("ذخیره زیرمنوی جدید ناموفق بود.");
+            }
+        });
+
+        document.getElementById("renameGradeCategoryBtn")?.addEventListener("click", async () => {
+            const category = gradeCategories.find(item => item.id === selectedGradeCategory);
+            if (!category) return;
+
+            const oldName = category.name;
+            const name = prompt("نام جدید زیرمنو:", oldName);
+            if (!name || !name.trim()) return;
+
+            category.name = name.trim();
+
+            try {
+                await saveGradeCategories();
+                renderGradeCategories();
+            } catch (error) {
+                category.name = oldName;
+                renderGradeCategories();
+                console.error(error);
+                alert("تغییر نام ذخیره نشد.");
+            }
+        });
+
+        document.getElementById("deleteGradeCategoryBtn")?.addEventListener("click", async () => {
+            if (gradeCategories.length <= 1) {
+                alert("حداقل یک زیرمنو باید باقی بماند.");
+                return;
+            }
+
+            const category = gradeCategories.find(item => item.id === selectedGradeCategory);
+            if (!category) return;
+
+            if (!confirm(`زیرمنوی «${category.name}» حذف شود؟ نمرات ذخیره‌شده حذف نخواهند شد.`)) return;
+
+            const oldCategories = [...gradeCategories];
+            const oldSelected = selectedGradeCategory;
+
+            gradeCategories = gradeCategories.filter(item => item.id !== selectedGradeCategory);
+            selectedGradeCategory = gradeCategories[0].id;
+
+            try {
+                await saveGradeCategories();
+                renderGradeCategories();
+                startGradesSync();
+            } catch (error) {
+                gradeCategories = oldCategories;
+                selectedGradeCategory = oldSelected;
+                renderGradeCategories();
+                console.error(error);
+                alert("حذف زیرمنو ذخیره نشد.");
+            }
+        });
+
+        renderGradeCategories();
 
         function escapeHTML(value) {
             return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -515,7 +880,7 @@
             let present = 0;
             let absent = 0;
 
-            snapshot.forEach(studentDoc => {
+            snapshot.docs.forEach((studentDoc, index) => {
                 const student = studentDoc.data();
                 const status = student.status || "حاضر";
 
@@ -525,6 +890,7 @@
                 const row = document.createElement("tr");
 
                 row.innerHTML = `
+            <td>${index + 1}</td>
             <td>${escapeHTML(student.name)}</td>
             <td>${escapeHTML(student.grade)}</td>
            <td>
@@ -534,11 +900,14 @@
         <option value="تأخیر" ${status === "تأخیر" ? "selected" : ""}>تأخیر</option>
     </select>
 </td>
-            <td><button class="delete-btn" type="button">حذف</button></td>
+           <td>
+    <button class="edit-btn" type="button">ویرایش</button>
+    <button class="delete-btn" type="button">حذف</button>
+</td>
         `;
 
                 row.querySelector(".delete-btn").addEventListener("click", async () => {
-                    if (!confirm("این دانش‌آموز حذف شود؟")) return;
+                    if (!confirm("⚠️ آیا مطمئنی که می‌خواهی این دانش‌آموز را حذف کنی؟\nاین عملیات قابل بازگشت نیست.")) return;
 
                     try {
                         await window.firebaseDeleteDoc(
@@ -551,6 +920,39 @@
                 });
 
                 studentTable.appendChild(row);
+                row.querySelector(".edit-btn").addEventListener("click", async () => {
+                    const newName = prompt("نام و نام خانوادگی:", student.name || "");
+                    if (newName === null || !newName.trim()) return;
+
+                    const newGrade = prompt("پایه تحصیلی:", student.grade || "");
+                    if (newGrade === null || !newGrade.trim()) return;
+
+                    const newStatus = prompt(
+                        "وضعیت را وارد کن: حاضر، غایب یا تأخیر",
+                        student.status || "حاضر"
+                    );
+
+                    if (!["حاضر", "غایب", "تأخیر"].includes(newStatus)) {
+                        alert("وضعیت واردشده معتبر نیست.");
+                        return;
+                    }
+
+                    try {
+                        await window.firebaseUpdateDoc(
+                            window.firebaseDoc(window.firebaseDb, STUDENTS, studentDoc.id),
+                            {
+                                name: newName.trim(),
+                                grade: newGrade.trim(),
+                                status: newStatus
+                            }
+                        );
+
+                        alert("اطلاعات دانش‌آموز ویرایش شد.");
+                    } catch (error) {
+                        console.error(error);
+                        alert("ویرایش ناموفق بود. اتصال Firebase را بررسی کن.");
+                    }
+                });
                 row.querySelector(".attendance-select").addEventListener("change", async (event) => {
                     const newStatus = event.target.value;
 
@@ -674,7 +1076,268 @@
                     "ورود ناموفق بود؛ ایمیل و رمز را بررسی کن.";
             }
         });
+        document.querySelectorAll(".menu a[data-page]").forEach(link => {
+            link.addEventListener("click", event => {
+                event.preventDefault();
+
+                const page = link.dataset.page;
+                if (page === "grades") {
+                    startGradesSync();
+                }
+
+                document.querySelectorAll(".menu a").forEach(item => {
+                    item.classList.remove("active");
+                });
+
+                link.classList.add("active");
+
+                const studentsSection = document.getElementById("students");
+                const gradesSection = document.getElementById("grades");
+                const statsSection = document.querySelector(".stats");
+                const welcomeSection = document.querySelector(".welcome");
+
+                if (studentsSection) {
+                    studentsSection.style.display =
+                        page === "students" ? "block" : "none";
+                }
+
+                if (gradesSection) {
+                    gradesSection.style.display =
+                        page === "grades" ? "block" : "none";
+                }
+
+                if (statsSection) {
+                    statsSection.style.display =
+                        page === "dashboard" ? "flex" : "none";
+                }
+
+                if (welcomeSection) {
+                    welcomeSection.style.display =
+                        page === "dashboard" ? "flex" : "none";
+                }
+            });
+        });
+        function updateDateTime() {
+            const now = new Date();
+            const dateElement = document.getElementById("persianDate");
+            const clockElement = document.getElementById("liveClock");
+            if (dateElement) {
+                dateElement.textContent = new Intl.DateTimeFormat("fa-IR", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    calendar: "persian"
+                }).format(now);
+            }
+            if (clockElement) {
+                clockElement.textContent = new Intl.DateTimeFormat("fa-IR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hour12: false,
+                    timeZone: "Asia/Tehran"
+                }).format(now);
+            }
+        }
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+        const addGradeBtn = document.getElementById("addGradeBtn");
+        addGradeBtn?.addEventListener("click", async () => {
+            try {
+                // دریافت فهرست واقعی دانش‌آموزان
+                const studentsRef = window.firebaseCollection(
+                    window.firebaseDb,
+                    "students"
+                );
+                const studentsSnapshot =
+                    await window.firebaseGetDocs(studentsRef);
+                if (studentsSnapshot.empty) {
+                    alert("هنوز دانش‌آموزی ثبت نشده است.");
+                    return;
+                }
+                // انتخاب دانش‌آموز با شماره از فهرست
+                const students = studentsSnapshot.docs;
+                const studentList = students.map((doc, index) => {
+                    const data = doc.data();
+                    return `${index + 1}. ${data.name} - ${data.grade || "بدون پایه"}`;
+                }).join("\n");
+                const choice = prompt(
+                    "شماره دانش‌آموز را وارد کن:\n\n" + studentList
+                );
+                if (choice === null || !choice.trim()) return;
+                const studentIndex = Number(choice) - 1;
+                if (
+                    !Number.isInteger(studentIndex) ||
+                    studentIndex < 0 ||
+                    studentIndex >= students.length
+                ) {
+                    alert("شماره دانش‌آموز معتبر نیست.");
+                    return;
+                }
+                const selectedDoc = students[studentIndex];
+                const selectedStudent = selectedDoc.data();
+                const subject = prompt("نام درس:", "علوم");
+                if (!subject || !subject.trim()) return;
+                const gradeText = prompt("نمره را از ۰ تا ۲۰ وارد کن:");
+                if (gradeText === null || !gradeText.trim()) return;
+                const grade = Number(gradeText);
+                if (!Number.isFinite(grade) || grade < 0 || grade > 20) {
+                    alert("نمره باید عددی بین ۰ تا ۲۰ باشد.");
+                    return;
+                }
+                const description = prompt("توضیحات (اختیاری):") || "";
+                await window.firebaseAddDoc(
+                    window.firebaseCollection(
+                        window.firebaseDb,
+                        "grades"
+                    ),
+                    {
+                        studentId: selectedDoc.id,
+                        categoryId: selectedGradeCategory,
+                        name: selectedStudent.name || "",
+                        studentGrade: selectedStudent.grade || "",
+                        subject: subject.trim(),
+                        grade: grade,
+                        description: description.trim(),
+                        createdAt: new Date().toISOString()
+                    }
+                );
+                alert("نمره با موفقیت برای دانش‌آموز انتخاب‌شده ثبت شد.");
+            } catch (error) {
+                console.error("Grade save error:", error);
+                alert("ثبت نمره ناموفق بود. اتصال و قوانین دسترسی فایربیس را بررسی کن.");
+            }
+        });
+        let unsubscribeGrades = null;
+        async function startGradesSync() {
+            const gradesTable = document.getElementById("gradesTable");
+            if (!gradesTable) return;
+            try {
+                const gradesRef = window.firebaseCollection(
+                    window.firebaseDb,
+                    "grades"
+                );
+                if (unsubscribeGrades) unsubscribeGrades();
+                unsubscribeGrades = window.firebaseOnSnapshot(
+                    gradesRef,
+                    snapshot => {
+                        gradesTable.innerHTML = "";
+
+                        const filteredGrades = snapshot.docs.filter(gradeDoc => {
+                            const item = gradeDoc.data();
+                            return (item.categoryId || "initial") === selectedGradeCategory;
+                        });
+
+                        if (filteredGrades.length === 0) {
+                            gradesTable.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align:center;padding:20px">
+                    برای این زیرمنو هنوز نمره‌ای ثبت نشده است.
+                </td>
+            </tr>`;
+                            return;
+                        }
+                        filteredGrades.forEach((gradeDoc, index) => {
+                            const item = gradeDoc.data();
+                            const row = document.createElement("tr");
+                            const values = [
+                                index + 1,
+                                item.name || "",
+                                item.studentGrade || "",
+                                item.subject || "",
+                                item.grade ?? "",
+                                item.description || ""
+                            ];
+                            values.forEach(value => {
+                                const cell = document.createElement("td");
+                                cell.textContent = String(value);
+                                row.appendChild(cell);
+                            });
+                            gradesTable.appendChild(row);
+                        });
+                    },
+                    error => {
+                        console.error("Grades listener:", error);
+                        alert("دریافت نمرات ناموفق بود.");
+                    }
+                );
+            } catch (error) {
+                console.error("Grades sync:", error);
+                alert("اتصال به جدول نمرات ناموفق بود.");
+            }
+        }
+        document.getElementById("printGradesBtn")?.addEventListener("click", () => {
+            const gradesSection = document.getElementById("grades");
+            if (!gradesSection) return;
+            const printWindow = window.open("", "_blank");
+            if (!printWindow) {
+                alert("پنجره چاپ مسدود شده است. اجازه باز شدن پنجره را بده.");
+                return;
+            }
+            printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="fa" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <title>جدول نمرات دانش‌آموزان</title>
+            <style>
+                body {
+                    font-family: Tahoma, Arial, sans-serif;
+                    padding: 24px;
+                    color: #222;
+                }
+                h2 {
+                    text-align: center;
+                    margin-bottom: 24px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                th, td {
+                    border: 1px solid #999;
+                    padding: 10px;
+                    text-align: center;
+                }
+                th {
+                    background: #eee;
+                }
+                @media print {
+                    body { padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <h2>جدول نمرات دانش‌آموزان</h2>
+            ${gradesSection.querySelector("table").outerHTML}
+        </body>
+        </html>
+    `);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
+        });
+        loadGradeCategories();
     </script>
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <h3>🎓 کلاس من</h3>
+                <p>از طرف امیرمهدی</p>
+            </div>
+            <div class="footer-links">
+
+                <a href="09905953814">تماس با ما</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© ۲۰۲۶ کلاس من | تمامی حقوق محفوظ است.</p>
+        </div>
+    </footer>
 </body>
 
 </html>
