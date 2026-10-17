@@ -792,26 +792,27 @@
 
             const snapshot = await window.firebaseGetDocs(categoriesRef);
 
-            if (!snapshot.empty) {
-                for (const categoryDoc of snapshot.docs) {
-                    await window.firebaseDeleteDoc(
-                        window.firebaseDoc(
-                            window.firebaseDb,
-                            "gradeCategories",
-                            categoryDoc.id
-                        )
-                    );
-                }
+            // ردیف‌های قبلی را حذف کن
+            for (const categoryDoc of snapshot.docs) {
+                await window.firebaseDeleteDoc(
+                    window.firebaseDoc(
+                        window.firebaseDb,
+                        "gradeCategories",
+                        categoryDoc.id
+                    )
+                );
             }
 
+            // ذخیره نام و شناسه منطقی داخل ستون name و شناسه ردیف Appwrite
             for (const category of gradeCategories) {
                 await window.firebaseAddDoc(categoriesRef, {
-                    id: category.id,
-                    name: category.name
+                    name: JSON.stringify({
+                        id: category.id,
+                        name: category.name
+                    })
                 });
             }
         }
-
         async function loadGradeCategories() {
             try {
                 const categoriesRef = window.firebaseCollection(
@@ -824,7 +825,14 @@
                 if (snapshot.empty) {
                     await saveGradeCategories();
                 } else {
-                    gradeCategories = snapshot.docs.map(doc => doc.data());
+                    gradeCategories = snapshot.docs.map(doc => {
+                        const raw = doc.data().name;
+                        try {
+                            return JSON.parse(raw);
+                        } catch {
+                            return { id: doc.id, name: raw };
+                        }
+                    });
 
                     if (!gradeCategories.some(item => item.id === selectedGradeCategory)) {
                         selectedGradeCategory = gradeCategories[0]?.id || "initial";
